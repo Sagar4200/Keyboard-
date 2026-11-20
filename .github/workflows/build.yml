@@ -19,15 +19,18 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      - name: Accept SDK licenses & check env
+      - name: Accept SDK licenses
         run: |
           export ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}
           export ANDROID_HOME=$ANDROID_SDK_ROOT
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || yes | "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" --licenses || true
 
-      - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace --info
+      - name: Generate Wrapper & Build Debug APK
+        run: |
+          gradle wrapper --gradle-version 8.7 --distribution-type bin
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
