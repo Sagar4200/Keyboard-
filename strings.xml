@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AI Keyboard</string>
+    <string name="ime_name">AI Keyboard</string>
+    <string name="listener_name">AI Keyboard message reader</string>
+</resources>
