@@ -1,188 +1,57 @@
-package com.sagar4200.aikeyboard
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp">
 
-import android.graphics.Color
-import android.inputmethodservice.InputMethodService
-import android.text.TextUtils
-import android.util.TypedValue
-import android.view.Gravity
-import android.view.View
-import android.view.inputmethod.EditorInfo
-import android.widget.Button
-import android.widget.LinearLayout
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sagar AI Keyboard Setup"
+        android:textSize="20sp"
+        android:textStyle="bold" />
 
-class AiKeyboardService : InputMethodService() {
+    <EditText
+        android:id="@+id/etApiKey"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="Enter Gemini API Key"
+        android:inputType="textPassword" />
 
-    private val serviceJob = Job()
-    private val uiScope = CoroutineScope(Dispatchers.Main + serviceJob)
-    private lateinit var prefs: Prefs
-    private lateinit var messageListener: MessageListener
+    <Switch
+        android:id="@+id/swAi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Enable AI Reply Mode" />
 
-    private val rows = listOf(
-        listOf("Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"),
-        listOf("A", "S", "D", "F", "G", "H", "J", "K", "L"),
-        listOf("Z", "X", "C", "V", "B", "N", "M")
-    )
+    <TextView
+        android:id="@+id/tvHeight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Keyboard Height: 260dp" />
 
-    override fun onCreate() {
-        super.onCreate()
-        prefs = Prefs(this)
-        messageListener = MessageListener(prefs)
-    }
+    <SeekBar
+        android:id="@+id/sbHeight"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
 
-    override fun onCreateInputView(): View {
-        val heightPx = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            prefs.keyboardHeightDp.toFloat(),
-            resources.displayMetrics
-        ).toInt()
+    <Button
+        android:id="@+id/btnSave"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Save Settings" />
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.parseColor("#1E2025"))
-            minimumHeight = heightPx
-            setPadding(8, 8, 8, 8)
-        }
+    <Button
+        android:id="@+id/btnEnableIme"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Open Keyboard Settings" />
 
-        val topBar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-
-        val btnAiReply = Button(this).apply {
-            text = if (prefs.aiEnabled) "AI Reply: ON" else "AI Reply: OFF"
-            textSize = 12f
-            setOnClickListener { handleAiReply() }
-        }
-
-        val btnToggleAi = Button(this).apply {
-            text = "Toggle AI"
-            textSize = 12f
-            setOnClickListener {
-                prefs.aiEnabled = !prefs.aiEnabled
-                btnAiReply.text = if (prefs.aiEnabled) "AI Reply: ON" else "AI Reply: OFF"
-            }
-        }
-
-        topBar.addView(btnAiReply, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        topBar.addView(btnToggleAi, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-        root.addView(topBar)
-
-        for (rowKeys in rows) {
-            val rowLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    0,
-                    1f
-                )
-            }
-            for (k in rowKeys) {
-                val keyBtn = Button(this).apply {
-                    text = k.lowercase()
-                    textSize = 15f
-                    setTextColor(Color.WHITE)
-                    setBackgroundColor(Color.parseColor("#2E323B"))
-                    val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply {
-                        setMargins(3, 3, 3, 3)
-                    }
-                    layoutParams = lp
-                    setOnClickListener {
-                        currentInputConnection?.commitText(text.toString(), 1)
-                    }
-                }
-                rowLayout.addView(keyBtn)
-            }
-            root.addView(rowLayout)
-        }
-
-        val bottomRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                0,
-                1f
-            )
-        }
-
-        val btnSpace = Button(this).apply {
-            text = "Space"
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.parseColor("#3A3F4B"))
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 3f).apply {
-                setMargins(3, 3, 3, 3)
-            }
-            setOnClickListener { currentInputConnection?.commitText(" ", 1) }
-        }
-
-        val btnDel = Button(this).apply {
-            text = "DEL"
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.parseColor("#4A2C2C"))
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply {
-                setMargins(3, 3, 3, 3)
-            }
-            setOnClickListener { currentInputConnection?.deleteSurroundingText(1, 0) }
-        }
-
-        val btnAction = Button(this).apply {
-            text = "Enter"
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.parseColor("#2B5B84"))
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1.5f).apply {
-                setMargins(3, 3, 3, 3)
-            }
-            setOnClickListener {
-                val ic = currentInputConnection ?: return@setOnClickListener
-                val imeAction = currentInputEditorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)
-                if (imeAction == EditorInfo.IME_ACTION_SEND || imeAction == EditorInfo.IME_ACTION_GO) {
-                    ic.performEditorAction(imeAction)
-                } else {
-                    ic.commitText("\n", 1)
-                }
-            }
-        }
-
-        bottomRow.addView(btnDel)
-        bottomRow.addView(btnSpace)
-        bottomRow.addView(btnAction)
-        root.addView(bottomRow)
-
-        return root
-    }
-
-    private fun handleAiReply() {
-        if (!messageListener.canUseAi()) {
-            currentInputConnection?.commitText("[Set Gemini API Key & turn AI ON in app]", 1)
-            return
-        }
-
-        val ic = currentInputConnection ?: return
-        val beforeText = ic.getTextBeforeCursor(300, 0)?.toString() ?: ""
-        val prompt = messageListener.buildSmartReplyPrompt(beforeText)
-
-        uiScope.launch {
-            val client = GeminiClient(prefs.apiKey)
-            val result = client.generateReply(prompt)
-            withContext(Dispatchers.Main) {
-                result.onSuccess { reply ->
-                    if (!TextUtils.isEmpty(reply)) {
-                        ic.commitText(reply, 1)
-                    }
-                }.onFailure {
-                    ic.commitText("[AI error]", 1)
-                }
-            }
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        serviceJob.cancel()
-    }
-}
+</LinearLayout>
